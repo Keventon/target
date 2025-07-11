@@ -1,9 +1,13 @@
 import { Button } from "@/components/Button";
 import { HomeHeader } from "@/components/HomeHeader";
 import { List } from "@/components/List";
-import { Target } from "@/components/Target";
-import { router } from "expo-router";
-import { StatusBar, View } from "react-native";
+import { Target, TargetProps } from "@/components/Target";
+import { router, useFocusEffect } from "expo-router";
+import { Alert, StatusBar, View } from "react-native";
+
+import { useTargetDatabase } from "@/database/useTargetDatabase";
+import { useCallback, useState } from "react";
+import { Loading } from "@/components/Loading";
 
 const summary = {
   total: "R$ 1.000,00",
@@ -17,39 +21,54 @@ const summary = {
   },
 };
 
-const targets = [
-  {
-    id: "1",
-    name: "Comprar uma cadeira ergonômica",
-    percentage: "75%",
-    current: "900",
-    target: "1.200",
-  },
-  {
-    id: "2",
-    name: "Apple Watch Series 7",
-    percentage: "50%",
-    current: "1.000",
-    target: "2.000",
-  },
-  {
-    id: "3",
-    name: "Comprar um mouse da Logitech",
-    percentage: "25%",
-    current: "100",
-    target: "500",
-  },
-];
-
 export default function Index() {
+  const [isFetching, setIsFetching] = useState(true);
+  const [targets, setTargets] = useState<TargetProps[]>([]);
+
+  const targetDatabase = useTargetDatabase();
+
+  async function fetchTargets(): Promise<TargetProps[]> {
+    try {
+      const response = await targetDatabase.listBySavedValue();
+      return response.map((item) => ({
+        id: String(item.id),
+        name: item.name,
+        current: String(item.current),
+        percentage: item.percentage.toFixed(0) + "%",
+        target: String(item.amount),
+      }));
+    } catch (error) {
+      Alert.alert("Erro", "Não foi possível carregar as metas");
+
+      console.log(error);
+    }
+  }
+
+  async function fetchData() {
+    const targetDataPromise = fetchTargets();
+    const [targetData] = await Promise.all([targetDataPromise]);
+    setTargets(targetData);
+    setIsFetching(false);
+  }
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [])
+  );
+
+  if (isFetching) {
+    return <Loading />;
+  }
+
   return (
     <View style={{ flex: 1 }}>
       <StatusBar barStyle="light-content" />
       <HomeHeader data={summary} />
 
       <List
-        title="Metas"
         data={targets}
+        title="Metas"
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <Target
