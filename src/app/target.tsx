@@ -3,9 +3,10 @@ import { CurrencyInput } from "@/components/CurrencyInput";
 import { Input } from "@/components/Input";
 import { PageHeader } from "@/components/PageHeader";
 import { useTargetDatabase } from "@/database/useTargetDatabase";
+import { colors } from "@/theme";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { Alert, View } from "react-native";
+import { Alert, StatusBar, View } from "react-native";
 
 export default function Target() {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -117,6 +118,7 @@ export default function Target() {
 
   return (
     <View style={{ flex: 1, padding: 24 }}>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.white} />
       <PageHeader
         title="Meta"
         subtitle="Economize para alcançar sua meta financeira."

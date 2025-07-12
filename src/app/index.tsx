@@ -1,5 +1,5 @@
 import { Button } from "@/components/Button";
-import { HomeHeader } from "@/components/HomeHeader";
+import { HomeHeader, HomeHeaderProps } from "@/components/HomeHeader";
 import { List } from "@/components/List";
 import { Target, TargetProps } from "@/components/Target";
 import { router, useFocusEffect } from "expo-router";
@@ -9,28 +9,20 @@ import { useTargetDatabase } from "@/database/useTargetDatabase";
 import { useCallback, useState } from "react";
 import { Loading } from "@/components/Loading";
 import { numberToCurrency } from "@/utils/numberToCurrency";
-
-const summary = {
-  total: "R$ 1.000,00",
-  input: {
-    label: "Entradas",
-    value: "R$ 1.000,00",
-  },
-  output: {
-    label: "Saídas",
-    value: "-R$ 800,00",
-  },
-};
+import { useTransactionsDatabase } from "@/database/useTransactionsDatabase";
+import { colors } from "@/theme";
 
 export default function Index() {
+  const [summary, setSummary] = useState<HomeHeaderProps>();
   const [isFetching, setIsFetching] = useState(true);
   const [targets, setTargets] = useState<TargetProps[]>([]);
 
   const targetDatabase = useTargetDatabase();
+  const transactionsDatabase = useTransactionsDatabase();
 
   async function fetchTargets(): Promise<TargetProps[]> {
     try {
-      const response = await targetDatabase.listBySavedValue();
+      const response = await targetDatabase.listByClosestValue();
       return response.map((item) => ({
         id: String(item.id),
         name: item.name,
@@ -40,6 +32,26 @@ export default function Index() {
       }));
     } catch (error) {
       Alert.alert("Erro", "Não foi possível carregar as metas");
+      console.log(error);
+    }
+  }
+
+  async function fetchSummary(): Promise<HomeHeaderProps> {
+    try {
+      const response = await transactionsDatabase.summary();
+      return {
+        total: numberToCurrency(response.input + response.output),
+        input: {
+          label: "Entradas",
+          value: numberToCurrency(response.input),
+        },
+        output: {
+          label: "Saídas",
+          value: numberToCurrency(response.output),
+        },
+      };
+    } catch (error) {
+      Alert.alert("Erro", "Não foi possível carregar o resumo");
 
       console.log(error);
     }
@@ -47,8 +59,13 @@ export default function Index() {
 
   async function fetchData() {
     const targetDataPromise = fetchTargets();
-    const [targetData] = await Promise.all([targetDataPromise]);
+    const dataSummaryPromise = fetchSummary();
+    const [targetData, dataSummary] = await Promise.all([
+      targetDataPromise,
+      dataSummaryPromise,
+    ]);
     setTargets(targetData);
+    setSummary(dataSummary);
     setIsFetching(false);
   }
 
@@ -64,7 +81,7 @@ export default function Index() {
 
   return (
     <View style={{ flex: 1 }}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.blue[500]} />
       <HomeHeader data={summary} />
 
       <List

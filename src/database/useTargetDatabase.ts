@@ -33,7 +33,7 @@ export function useTargetDatabase() {
     });
   }
 
-  function listBySavedValue() {
+  function listByClosestValue() {
     return database.getAllAsync<TargetResponse>(`
         SELECT targets.id,
         targets.name,
@@ -45,7 +45,7 @@ export function useTargetDatabase() {
         FROM targets
         LEFT JOIN transactions ON targets.id = transactions.target_id
         GROUP BY targets.id, targets.name, targets.amount
-        ORDER BY current DESC
+        ORDER BY percentage DESC
         `);
   }
 
@@ -84,5 +84,5 @@ export function useTargetDatabase() {
     await database.runAsync(`DELETE FROM targets WHERE id = ?`, id);
   }
 
-  return { show, create, update, remove, listBySavedValue };
+  return { show, create, update, remove, listByClosestValue };
 }
